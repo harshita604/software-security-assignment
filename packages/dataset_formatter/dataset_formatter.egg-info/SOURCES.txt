@@ -1,0 +1,7 @@
+setup.py
+dataset_formatter/__init__.py
+dataset_formatter/core.py
+dataset_formatter.egg-info/PKG-INFO
+dataset_formatter.egg-info/SOURCES.txt
+dataset_formatter.egg-info/dependency_links.txt
+dataset_formatter.egg-info/top_level.txt
