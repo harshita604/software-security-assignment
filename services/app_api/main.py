@@ -19,7 +19,7 @@ def login(creds: dict):
         raise HTTPException(status_code='401', detail='Invalid login credentials')
 
     payload={
-        "user": creds.get("username"),
+        "sub": creds.get("username"),
         "role": user["role"],
         "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
     }
@@ -36,3 +36,36 @@ def decode_token(auth: str):
     except Exception:
         raise HTTPException(status_code= 401, detail='Invalid Token')
 
+#CWE 918 vulnerability
+@app.post("/datasets/import-remote")
+def import_remote(payload: dict, authorization: str):
+    token= decode_token(authorization)
+    target_url= payload.get('url')
+    if not target_url:
+        raise HTTPException(status_code=400, detail="Missing URL")
+
+    # vulnerable as server calls the entered url without any checks
+    response= requests.get(target_url)
+    return {"status":"import", "content_preview":response.text[:100]}
+
+# App-specific vulnerability allowing data access across users
+@app.post("/datasets/{dataset_id}/export")
+def trigger_export(dataset_id: str, payload: dict, authorization: str):
+    user = decode_token(authorization)
+    output_filename = payload.get("output_filename", f"export_{dataset_id}.md")
+    
+    # The API forwards dataset_id, but the processing service fetches data without token checking.
+    job_payload = {
+        "dataset_id": dataset_id,
+        "requested_by": user["sub"],
+        "output_filename": output_filename
+    }
+    
+    res = requests.post("http://127.0.0.1:8002/jobs/export", json=job_payload)
+    if res.status_code != 200:
+        raise HTTPException(status_code=res.status_code, detail=res.text)
+    return res.json()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

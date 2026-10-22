@@ -20,6 +20,8 @@ FR6: Admin can delete any user’s datasets
 
 FR7: Admin can export any user datasets 
 
+FR8: User can import datasets from the web
+
 - **Non-Functional/Security Requirements**:
 
 These are additional requirements to make sure the application is secure. 
