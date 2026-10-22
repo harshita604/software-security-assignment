@@ -3,9 +3,8 @@ import jwt
 import datetime
 from fastapi import FastAPI, HTTPException, Header
 import secrets 
-app= FastAPI("Application API")
-
-header= secrets.token_hex()
+app= FastAPI(title= "Application API")
+header= "secret_jwt_key"
 seeded_users={
     "alice":{"password":"alice123", "role":"user"},
     "bob":{"password":"bob123", "role":"user"},
@@ -16,14 +15,14 @@ seeded_users={
 def login(creds: dict):
     user= seeded_users.get(creds.get("username"))
     if not user or user['password']!= creds.get("password"):
-        raise HTTPException(status_code='401', detail='Invalid login credentials')
+        raise HTTPException(status_code=401, detail='Invalid login credentials')
 
     payload={
         "sub": creds.get("username"),
         "role": user["role"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
     }
-    token= jwt.encode(header, payload, algorithm="HS256")
+    token= jwt.encode( payload, header, algorithm="HS256")
     return {"access_token":token, "token_type":"bearer"}
 
 def decode_token(auth: str):
@@ -38,8 +37,8 @@ def decode_token(auth: str):
 
 #CWE 918 vulnerability
 @app.post("/datasets/import-remote")
-def import_remote(payload: dict, authorization: str= Header("...")):
-    token= decode_token(authorization)
+def import_remote(payload: dict, auth: str= Header(...)):
+    token= decode_token(auth)
     target_url= payload.get('url')
     if not target_url:
         raise HTTPException(status_code=400, detail="Missing URL")
@@ -50,18 +49,18 @@ def import_remote(payload: dict, authorization: str= Header("...")):
 
 # App-specific vulnerability allowing data access across users
 @app.post("/datasets/{dataset_id}/export")
-def trigger_export(dataset_id: str, payload: dict, authorization: str= Header("...")):
-    user = decode_token(authorization)
+def trigger_export(dataset_id: str, payload: dict, auth: str= Header(...)):
+    user = decode_token(auth)
     output_filename = payload.get("output_filename", f"export_{dataset_id}.md")
     
-    # The API forwards dataset_id, but the processing service fetches data without token checking.
+    # The API forwards dataset_id, but the processing service fetches data without token checking
     job_payload = {
         "dataset_id": dataset_id,
         "requested_by": user["sub"],
         "output_filename": output_filename
     }
     
-    res = requests.post("http://127.0.0.1:8002/jobs/export", json=job_payload)
+    res = requests.post("http://127.0.0.1:8002/job/export", json=job_payload)
     if res.status_code != 200:
         raise HTTPException(status_code=res.status_code, detail=res.text)
     return res.json()
