@@ -80,3 +80,12 @@ Mapping the functional and security requirements to three main functionalities o
 
 ## **B) Implementation & Build** 
 
+As specified in the assignment the architecture comprises of 3 main layers: an application layer, the resource layer and the processing layer.
+
+1)	The Application API: This API is supposed to handle the user authentication and authorization. It connects to the processing service to handle the export datasets functionality.
+
+2)	The Resource Service: This layer contains the dataset records. Currently the datasets have been hardcoded into the database.
+
+3)	The Processing Service: This service receives input from the Application API to handle the export job. It sends requests, a GET request to the resource layer to get access to the datasets and a POST request to store the new formatted dataset generated via the external package.
+The third functionality, which allows the user to format dataset from existing dataset records and export it to device using all the three layers (application, resource and service). 
+
