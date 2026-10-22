@@ -1,7 +1,7 @@
 import requests
 import jwt 
 import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 import secrets 
 app= FastAPI("Application API")
 
@@ -38,7 +38,7 @@ def decode_token(auth: str):
 
 #CWE 918 vulnerability
 @app.post("/datasets/import-remote")
-def import_remote(payload: dict, authorization: str):
+def import_remote(payload: dict, authorization: str= Header("...")):
     token= decode_token(authorization)
     target_url= payload.get('url')
     if not target_url:
@@ -50,7 +50,7 @@ def import_remote(payload: dict, authorization: str):
 
 # App-specific vulnerability allowing data access across users
 @app.post("/datasets/{dataset_id}/export")
-def trigger_export(dataset_id: str, payload: dict, authorization: str):
+def trigger_export(dataset_id: str, payload: dict, authorization: str= Header("...")):
     user = decode_token(authorization)
     output_filename = payload.get("output_filename", f"export_{dataset_id}.md")
     
