@@ -6,12 +6,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Source') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Environment Preparation') {
             steps {
                 sh '''
