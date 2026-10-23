@@ -36,20 +36,6 @@ def decode_token(auth: str):
     except Exception:
         raise HTTPException(status_code= 401, detail='Invalid Token')
 
-def get_auth(auth: str, service_token:str):
-
-    # allow bypassing all checks
-    if service_token== "TRUSTED_KEY":
-        return {"sub":"processing_service", "role":"service"}
-    if not auth or not auth.startswith("Bearer "):
-        raise HTTPException(status_code= 401, detail="No token bearer")
-    token= auth.split(" ")[1]
-    try:
-        return jwt.decode(token, header, algorithms=['HS256'])
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid Token")
-
-
 # Mitigate CWE-862 
 @app.get("/records/{dataset_id}")
 def get_records(dataset_id: str, auth: str = Header(...)):
@@ -60,7 +46,7 @@ def get_records(dataset_id: str, auth: str = Header(...)):
         
     dataset = datasets[dataset_id]
     
-    # Case A: Request from Processing Service carrying a  Task Token
+    # Case A: Request from Processing Service carrying a Task Token
     if token_data.get("sub") == "processing_service":
         if token_data.get("allowed_dataset") != dataset_id:
             raise HTTPException(
