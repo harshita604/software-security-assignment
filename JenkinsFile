@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHONUNBUFFERED = '1'
+    }
+
+    stages {
+        stage('Checkout Source') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Environment Preparation') {
+            steps {
+                sh '''
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    pip install bandit pip-audit pytest requests uvicorn
+                    # Install the custom helper wheel dependency
+                    pip install ./packages/dataset_formatter
+                '''
+            }
+        }
+
+        stage('Gate 1: Static Analysis (SAST)') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    mkdir -p reports
+                    # Scan secure services; fail build on HIGH severity findings (-lll)
+                    bandit -r services/ -lll -f json -o reports/bandit-report.json || {
+                        echo "[!] Gate 1 Violation: High-severity static code vulnerability detected."
+                        exit 1
+                    }
+                '''
+            }
+        }
+
+        stage('Gate 2: Dependency Analysis (SCA)') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    mkdir -p reports
+                    # Audit dependencies; fail on known vulnerabilities
+                    pip-audit -r requirements.txt -f json -o reports/dependency-audit.json || {
+                        echo "[!] Gate 2 Violation: Known vulnerable dependency detected."
+                        exit 1
+                    }
+                '''
+            }
+        }
+
+        stage('Gate 3: Ephemeral Environment & Testing') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    mkdir -p reports
+
+                    # 1. Start all three microservices in the background
+                    python3 -m uvicorn app_secure.resource_service.main:app --host 127.0.0.1 --port 8001 &
+                    PID_RESOURCE=$!
+                    python3 -m uvicorn app_secure.processing_service.main:app --host 127.0.0.1 --port 8002 &
+                    PID_PROCESSING=$!
+                    python3 -m uvicorn app_secure.app_api.main:app --host 127.0.0.1 --port 8000 &
+                    PID_API=$!
+
+                    # Wait for services to bind ports
+                    sleep 4
+
+                    # 2. Run Functional and Authorization Tests
+                    pytest tests/test_security.py --junitxml=reports/test-results.xml
+                    TEST_EXIT_CODE=$?
+
+                    # 3. Clean up background microservice processes
+                    kill $PID_API $PID_PROCESSING $PID_RESOURCE || true
+
+                    if [ $TEST_EXIT_CODE -ne 0 ]; then
+                        echo "[!] Gate 3 Violation: Authorization or functional security tests failed."
+                        exit 1
+                    fi
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            // Requirement 3: Save test and analysis results as artifacts
+            archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+            junit testResults: 'reports/test-results.xml', allowEmptyResults: true
+        }
+        success {
+            echo 'Security Assurance Passed: All security gates satisfied.'
+        }
+        failure {
+            echo 'Security Assurance Failed: Build blocked due to policy violations.'
+        }
+    }
+}
