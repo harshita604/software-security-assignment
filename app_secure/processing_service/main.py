@@ -15,7 +15,7 @@ def run_export(job:dict): #input from application API
     task_token= job.get('task_token')
     output_filename= job.get("output_filename")
 
-    if not dataset_id or task_token or output_filename:
+    if not dataset_id or not task_token or not output_filename:
         raise HTTPException(status_code=400, detail="Missing required parameters or task token")
         
     #  Mitigate CWE-22 Path traversal vulnerability
@@ -28,13 +28,13 @@ def run_export(job:dict): #input from application API
         raise HTTPException(status_code=400, detail="Illegal output path location")
 
         # update headers from a token that bypasses everything to specific task token to manage access
-    headers={"Auth":f"Bearer {task_token}"}
+    headers={"Auth": f"Bearer {task_token}"}
     res= requests.get(f'http://127.0.0.1:8001/records/{dataset_id}', headers= headers )
     if res.status_code != 200:
         raise HTTPException(status_code= res.status_code, detail='Failed to fetch records from DB')
     records= res.json().get("records",[])
     format_content= format_summary(records)
-    
+
     with open(file_path, "w") as f:
         f.write(format_content)
 

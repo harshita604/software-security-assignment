@@ -128,7 +128,7 @@ def trigger_export(dataset_id: str, payload: dict, auth: str= Header(...)):
     # The API forwards dataset_id, but the processing service fetches data without token checking
     job_payload = {
         "dataset_id": dataset_id,
-        "requested_by": user["sub"],
+        "task_token": task_token,  # add token for checking access
         "output_filename": output_filename
     }
     res = requests.post("http://127.0.0.1:8002/job/export", json=job_payload)
@@ -136,7 +136,7 @@ def trigger_export(dataset_id: str, payload: dict, auth: str= Header(...)):
         raise HTTPException(status_code=res.status_code, detail=res.text)
     return res.json()
 
-# Allow admin to read log-audits
+# Allow admin to read audit logs
 @app.get("/admin/audit-logs")
 def view_audit_logs(auth:str= Header(...)):
     user= decode_token(auth)

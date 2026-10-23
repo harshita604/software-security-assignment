@@ -78,7 +78,7 @@ def get_records(dataset_id: str, auth: str = Header(...)):
 #     return datasets[dataset_id]
 
 @app.post("/exports/save")
-def save_export(payload:dict, auth: str= Header(None)):
+def save_export(payload:dict, auth: str= Header(...)):
     token_data= decode_token(auth)
     if token_data.get("sub")!= "processing_service":
         raise HTTPException(status_code=403, detail="Forbidden: Only processing workers can save export")
