@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 workspace_exports/
 .pytest_cache/
+../arbitrary_overwrite.txt
