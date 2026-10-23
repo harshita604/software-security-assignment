@@ -136,6 +136,18 @@ def trigger_export(dataset_id: str, payload: dict, auth: str= Header(...)):
         raise HTTPException(status_code=res.status_code, detail=res.text)
     return res.json()
 
+# Allow admin to read log-audits
+@app.get("/admin/audit-logs")
+def view_audit_logs(auth:str= Header(...)):
+    user= decode_token(auth)
+    if user.get("role")!="admin":
+        raise HTTPException(status_code=403, detail="Forbidden: Admin Privelegs Required")
+    return{
+        "logs": [
+            {"event": "system_boot", "timestamp": "2026-03-01T08:00:00Z"},
+            {"event": "security_gate_passed", "actor": "system"}
+        ]
+    }
 
 if __name__ == "__main__":
     import uvicorn
