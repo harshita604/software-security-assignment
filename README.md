@@ -31,6 +31,9 @@ pip install bandit pip_audit pytest requests uvicorn streamlit
 cd packages\dataset_formatter
 pip install .\packages\dataset_formatter
 
+# The services folder contains the files with planted vulnerabilities
+# The app_secure folder contains the files after mitigating vulnerabilities
+
 # Terminal 1: Resource Service (Port 8001)
 uvicorn app_secure.resource_service.main:app --host 127.0.0.1 --port 8001
 
@@ -40,6 +43,11 @@ uvicorn app_secure.processing_service.main:app --host 127.0.0.1 --port 8002
 # Terminal 3: Application API (Port 8000)
 uvicorn app_secure.app_api.main:app --host 127.0.0.1 --port 8000
 
+# Visualise how the mitigations work using streamlit
+# The same UI file can be used to see how the vulnerabilities work, by running the insecure files # on the previous terminals as:
+# uvicorn services.resource_service.main:app --host 127.0.0.1 --port 8001
+# uvicorn services.processing_service.main:app --host 127.0.0.1 --port 8002
+# uvicorn services.app_api.main:app --host 127.0.0.1 --port 8000
 streamlit run ui.py
 
 # Run the 6 automated functional and authorization security gates
